@@ -1,0 +1,1 @@
+Szakdolgozat projekt OverLeaf editor használatával
