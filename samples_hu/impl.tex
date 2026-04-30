@@ -829,9 +829,11 @@ A hozzá tartozó JavaScript (\texttt{home.js}) gondoskodik az űrlap mezőinek 
 
 \section{Tesztelés}
 
-A Django projektekben a tesztelést a modulonként automatikusan létrehozott \texttt{tests.py} fájlokban található beépített tesztkeretrendszert használó \textit{unittestek} végzik. Ezek lefedik a projekt legfontosabb területeit, itt kerül ellenőrzésre többek között a modellek, segédfüggvények, nézetek, API végpontok és a tanulási logika helyes működése. Az összes teszt egyszerre futtatható a \texttt{python manage.py test} paranccsal, de paraméterként meg lehet adni modulok nevét, a tesztosztályt vagy metódust is. A projekt és az eddigi dokumentáció mintáját követve, a tesztek applikációnként kerülnek bemutatásra.
+A Django projektekben a tesztelést a modulonként automatikusan létrehozott \texttt{tests.py} fájlokban található beépített tesztkeretrendszert használó \textit{unittestek} végzik. Ezek lefedik a projekt legfontosabb területeit, itt kerül ellenőrzésre többek között a modellek, segédfüggvények, nézetek, API végpontok és a tanulási logika helyes működése. Az összes teszt egyszerre futtatható a \texttt{python manage.py test} paranccsal, de paraméterként meg lehet adni modulok nevét, a tesztosztályt vagy metódust is. A projekt és az eddigi dokumentáció mintáját követve, az automatikus tesztek applikációnként kerülnek bemutatásra.
 
-\subsection{A \texttt{core} modul tesztjei}
+\subsection{Automatikus tesztelés}
+
+\subsubsection{A \texttt{core} modul tesztjei}
 
 A core modul a projekt alapját képező adatmodelleket tartalmazza. A tesztelés célja az adatbázis megszorítások (\texttt{unique, unique\_together, constraints}) és segédmetódusok (\texttt{get\_absolute\_url, meaning\_short}) megfelelő működésének ellenőrzése. Szintén itt vizsgáljuk meg, hogy a ManyToMany kapcsolatok megfelelően jönnek létre és lekérdezhetőek, valamint, hogy az adatok integritása megmarad-e hibás vagy duplikált bevitel esetén. A tesztek például ellenőrzik: 
 \begin{itemize}
@@ -855,7 +857,7 @@ def test_word_unique_surface_form(self):
         Word.objects.create(surface_form="unique_word")
 \end{lstlisting}
 
-\subsection{A \texttt{dashboard} modul tesztjei}
+\subsubsection{A \texttt{dashboard} modul tesztjei}
 
 A modul tesztjei fő feladata az, hogy megbizonyosodjunk arról, hogy a szűrési, keresési, statisztikai és listázási logika minden lehetséges bemenetre helyesen működjön, illetve a nézetek megfelelően kezeljék a felhasználói interakciókat és az adatbázis műveleteket. A tesztek sok helyen használnak segédfüggvényeket, HTTP kérések szimulációival. Többek között ellenőrzésre kerül, hogy:
 
@@ -880,7 +882,7 @@ def test_apply_search_filter(self):
     self.assertEqual(filtered.first(), word1)
 \end{lstlisting}
 
-\subsection{A \texttt{processor} modul tesztjei}
+\subsubsection{A \texttt{processor} modul tesztjei}
 
 A tesztelés célja annak ellenőrzése, hogy a japán és angol szövegek tokenizálása, mondatbontása, valamint a tartalom validálása minden esetben helyesen működik, továbbá a fájlbeolvasás és a nézetek is megfelelően kezelik a különböző bemeneteket és hibákat. Ezek fehér dobozos modultesztek, amelyek közvetlenül a segédfüggvényeket és a nézeteket hívják meg. A tesztek többek között ellenőrzik:
 
@@ -907,7 +909,7 @@ def test_english_pos_filtering(self):
     self.assertNotIn("the", lemmas)
 \end{lstlisting}
 
-\subsection{A \texttt{dictionary} modul tesztjei}
+\subsubsection{A \texttt{dictionary} modul tesztjei}
 
 A modul tesztjei az itt definiált modellek, segédfüggvények, tanulási logika, API végpontok és nézetek helyes működését ellenőrzik. Példatesztek:
 
@@ -951,3 +953,61 @@ def test_new_word_again_then_easy(self):
         (word.next_review.date() - date.today()).days, 4, delta=0
     )
 \end{lstlisting}
+
+\subsection{Manuális tesztelés}
+
+A manuális tesztelés folyamán többféle felhasználói szcenárió került vizsgálatra annak biztosítására, hogy a rendszer működése a valós használati körülmények között is megfelelő legyen. Egyes tesztesetekhez, ahol releváns, ábrák is tartoznak, amelyek szemléltetik a rendszer megfelelő válaszait (pl. hibaüzenetek, keresési eredmények).
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{|p{3cm}|p{4cm}|p{4cm}|c|}
+		\hline
+		\textbf{Leírás} & \textbf{Lépések} & \textbf{Elvárt Eredmény} & \textbf{Eredmény} \\
+		\hline \hline
+		Szöveg feltöltése cím nélkül & Szöveg feltöltése úgy, hogy a cím mező üres marad & Hibaüzenet jelenik meg, a feltöltés nem történik meg (\ref{fig:no-title} ábra) & Sikeres \\
+		\hline
+		Japán szöveg validáció hibás inputtal & Nem japán karaktereket tartalmazó szöveg feltöltése japánként & Hibaüzenet jelenik meg, a rendszer nem fogadja el a bemenetet (\ref{fig:no-jp-char} ábra) & Sikeres \\
+        \hline
+        Szöveg feltöltés (.txt) & Fájl feltöltése a rendszerbe & Szöveg feldolgozásra kerül, elemek létrejönnek & Sikeres \\
+        \hline
+        Keresés a dashboardon & Kulcsszó beírása a keresőmezőbe & Csak releváns találatok jelennek meg (\ref{fig:search} ábra) & Sikeres \\
+        \hline
+        Tanulási folyamat frissítés & Válaszadás egy tanulási elemre & Státusz és ismétlési intervallum frissül & Sikeres \\
+        \hline
+        Szótár napi tanulási limit beállítása & A napi új elemek limitjének módosítása, majd tanulás indítása több elérhető elemmel & A rendszer csak a beállított limitnek megfelelő számú új elemet jelenít meg & Sikeres \\
+        \hline
+        Érvénytelen napi tanulási limit (0 érték) & A napi új elemek limitjének 0-ra állítása a beállításoknál & A rendszer validációs hibát jelez, és nem engedi a mentést (\ref{fig:limit-error} ábra) & Sikeres \\
+        \hline
+        
+	\end{tabular}
+	\caption{Manuális tesztesetek}
+	\label{tab:management}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{images/impl/manual_testing/no_title.png}
+  \caption{Hibaüzenet cím nélküli bevitelnél}
+  \label{fig:no-title}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{images/impl/manual_testing/no_jp_char.png}
+  \caption{Hibaüzenet japán karaktert nem tartalmazó szöveg bevitelénél}
+  \label{fig:no-jp-char}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{images/impl/manual_testing/search.png}
+  \caption{Keresés után csak a releváns eredmények láthatóak}
+  \label{fig:search}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{images/impl/manual_testing/limit_error.png}
+  \caption{Hibaüzenet megjelenítése érvénytelen napi limit beállítása esetén}
+  \label{fig:limit-error}
+\end{figure}
